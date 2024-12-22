@@ -1,8 +1,13 @@
 import json
 import os
 from app.api.groq_api import classify_news_message, extract_location_details
+from app.kafka_settings.producer import produce
 from app.service.location_service import get_coordinates
+from dotenv import load_dotenv
 
+load_dotenv(verbose=True)
+
+elastic_topic = os.environ["ELASTIC_TOPIC"]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 file = "../assets/news.json"
 file_path = os.path.join(BASE_DIR, file)
@@ -12,6 +17,7 @@ def read_json(file_path):
     with open(file_path) as json_file:
         data = json.load(json_file)
         return data
+
 
 def process_news():
     results_news = read_json(file_path)
@@ -31,7 +37,7 @@ def process_news():
         country = location_dict["country"]
         region = location_dict["region"]
         coords = get_coordinates(country, city)
-        print({
+        news_dict = {
             "title": news["title"],
             "body": news["body"],
             "classification": classification,
@@ -40,7 +46,9 @@ def process_news():
             "region": region,
             "latitude": coords[0],
             "longitude": coords[1]
-        })
+        }
+        produce(news_dict, elastic_topic)
+        print(news_dict)
         break
 
 process_news()
