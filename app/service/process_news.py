@@ -21,6 +21,7 @@ def read_json(file_path):
 
 def process_news():
     results_news = read_json(file_path)
+    a = 0
     for news in results_news["articles"]["results"]:
         type = classify_news_message(news["body"])
         if type[0] == "1":
@@ -31,15 +32,20 @@ def process_news():
             classification = classify_news_message_dict["3"]
         else:
             classification = classify_news_message_dict["1"]
-        location = extract_location_details(news["title"], news["body"])
-        location_dict = json.loads(location)
+        location_dict = extract_location_details(news["title"], news["body"])
+        if location_dict is None:
+            continue
         city = location_dict["city"]
         country = location_dict["country"]
         region = location_dict["region"]
         coords = get_coordinates(country, city)
+        print(coords)
+        if coords is None or classification is None or city is None or country is None or region is None:
+            continue
         news_dict = {
             "title": news["title"],
             "body": news["body"],
+            "date": news["dateTime"],
             "classification": classification,
             "city": city,
             "country": country,
@@ -47,9 +53,13 @@ def process_news():
             "latitude": coords[0],
             "longitude": coords[1]
         }
-        produce(news_dict, elastic_topic)
-        print(news_dict)
-        break
+        batch = []
+        batch.append(news_dict)
+        if batch:
+            produce(batch,"news", elastic_topic)
+            batch = []
+
+        a += 1
+        print(a)
 
 process_news()
-

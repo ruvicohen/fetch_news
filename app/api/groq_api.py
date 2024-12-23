@@ -1,3 +1,4 @@
+import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
@@ -39,6 +40,20 @@ def classify_news_message(message):
         print(f"Error during classification: {e}")
         return None
 
+def validate_location_details(location_details):
+    required_keys = {"city", "country", "region"}
+    if not isinstance(location_details, dict):
+        return False
+
+    if not required_keys.issubset(location_details.keys()):
+        return False
+
+    for key in required_keys:
+        value = location_details[key]
+        if value not in ["null"] and not isinstance(value, str):
+            return False
+
+    return True
 
 def extract_location_details(title, content):
     clean_title = title.replace('\\', '')
@@ -53,6 +68,7 @@ def extract_location_details(title, content):
                      "region": ["region" or "null"]
                 }}
                 only one result for each and no additional comments at all
+                and please dont use None!!
                 
 
                 News Message:
@@ -70,7 +86,13 @@ def extract_location_details(title, content):
         )
 
         response = chat_completion.choices[0].message.content
-        return response
+        location_details = json.loads(response)
+
+        if validate_location_details(location_details):
+            return location_details
+        else:
+            print(f"Invalid location details: {location_details}")
+            return None
 
     except Exception as e:
         print(f"Error during location extraction: {e}")

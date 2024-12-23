@@ -11,7 +11,7 @@ def get_coordinates(country, city):
 
         location = f"{city}, {country}"
 
-        result = geolocator.geocode(location)
+        result = geolocator.geocode(location, timeout=None)
 
         if result:
             return result.latitude, result.longitude
