@@ -8,6 +8,7 @@ import requests
 from functools import lru_cache
 from app.db.models.elastic_models import Coordinates, NewsClassification, NewsCategory
 
+
 def compose_news_request() -> Dict[str, Any]:
     return {
         "action": "getArticles",
@@ -17,7 +18,7 @@ def compose_news_request() -> Dict[str, Any]:
         "articlesSortBy": "socialScore",
         "articlesSortByAsc": False,
         "dataType": ["news"],
-        "apiKey": Config.NEWS_API_KEY
+        "apiKey": Config.NEWS_API_KEY,
     }
 
 
@@ -38,7 +39,7 @@ def fetch_news() -> List[Dict[str, Any]]:
         "articlesSortBy": "socialScore",
         "articlesSortByAsc": False,
         "dataType": ["news"],
-        "apiKey": Config.NEWS_API_KEY
+        "apiKey": Config.NEWS_API_KEY,
     }
 
     try:
@@ -50,7 +51,7 @@ def fetch_news() -> List[Dict[str, Any]]:
         response.raise_for_status()  # מעלה שגיאה אם הסטטוס קוד לא תקין
 
         data = response.json()
-        return data.get('articles', {}).get('results', [])
+        return data.get("articles", {}).get("results", [])
 
     except requests.exceptions.RequestException as e:
         print(f"Error making request: {e}")
@@ -59,16 +60,14 @@ def fetch_news() -> List[Dict[str, Any]]:
         print(f"Error decoding JSON: {e}")
         return []
 
+
 @lru_cache(maxsize=1000)
 def get_coordinates(location: str) -> Optional[Coordinates]:
     """המרת שם מיקום לקואורדינטות"""
     try:
         result = geolocator.geocode(location)
         if result:
-            return Coordinates(
-                latitude=result.latitude,
-                longitude=result.longitude
-            )
+            return Coordinates(latitude=result.latitude, longitude=result.longitude)
         return None
     except Exception as e:
         print(f"Error getting coordinates for {location}: {e}")
@@ -78,8 +77,8 @@ def get_coordinates(location: str) -> Optional[Coordinates]:
 def classify_news(title: str, content: str) -> Optional[NewsClassification]:
     """סיווג חדשות באמצעות Groq"""
     # ניקוי הטקסט מתווים מיוחדים
-    clean_title = title.replace('\\', '')
-    clean_content = content.replace('\\', '') if content else ''
+    clean_title = title.replace("\\", "")
+    clean_content = content.replace("\\", "") if content else ""
 
     prompt = f"""
     Classify this news article into one category:
@@ -101,7 +100,7 @@ def classify_news(title: str, content: str) -> Optional[NewsClassification]:
             messages=[{"role": "user", "content": prompt}],
             model="mixtral-8x7b-32768",
             temperature=0.1,
-            max_tokens=200
+            max_tokens=200,
         )
 
         result = json.loads(completion.choices[0].message.content.strip())
@@ -117,7 +116,7 @@ def classify_news(title: str, content: str) -> Optional[NewsClassification]:
             category=NewsCategory(result["category"]),
             location=result["location"],
             confidence=float(result["confidence"]),
-            coordinates=coords
+            coordinates=coords,
         )
 
     except Exception as e:
@@ -144,7 +143,7 @@ def save_to_elasticsearch(article: Dict[str, Any], classification: NewsClassific
     if classification.coordinates:
         doc["coordinates"] = {
             "lat": classification.coordinates.latitude,
-            "lon": classification.coordinates.longitude
+            "lon": classification.coordinates.longitude,
         }
 
     try:
@@ -153,6 +152,7 @@ def save_to_elasticsearch(article: Dict[str, Any], classification: NewsClassific
     except Exception as e:
         print(f"Error in save_to_elasticsearch: {str(e)}")
         print(f"Document attempted to save: {doc}")
+
 
 def process_news():
     articles = fetch_news()
@@ -164,8 +164,7 @@ def process_news():
                 continue
 
             classification = classify_news(
-                article.get("title", ""),
-                article.get("body", "")
+                article.get("title", ""), article.get("body", "")
             )
 
             if classification:

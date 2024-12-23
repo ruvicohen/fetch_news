@@ -1,4 +1,3 @@
-import json
 import os
 import requests
 from dotenv import load_dotenv
@@ -16,17 +15,14 @@ budy = {
     "articlesCount": 100,
     "articlesSortBy": "socialScore",
     "articlesSortByAsc": False,
-    "dataType": [
-    "news",
-    "pr"
-    ],
+    "dataType": ["news", "pr"],
     "forceMaxDataTimeWindow": 31,
     "resultType": "articles",
-    "apiKey": api_key
-    }
+    "apiKey": api_key,
+}
+
 
 def fetch_news():
     response = requests.post(url, json=budy)
     json_response = response.json()
     return json_response
-

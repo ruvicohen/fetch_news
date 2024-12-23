@@ -11,7 +11,12 @@ elastic_topic = os.environ["ELASTIC_TOPIC"]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 file = "../assets/news.json"
 file_path = os.path.join(BASE_DIR, file)
-classify_news_message_dict = {"1": "General News", "2": "Historical Terrorism Event", "3": "Current Terrorism Event"}
+classify_news_message_dict = {
+    "1": "General News",
+    "2": "Historical Terrorism Event",
+    "3": "Current Terrorism Event",
+}
+
 
 def read_json(file_path):
     with open(file_path) as json_file:
@@ -40,7 +45,13 @@ def process_news():
         region = location_dict["region"]
         coords = get_coordinates(country, city)
         print(coords)
-        if coords is None or classification is None or city is None or country is None or region is None:
+        if (
+            coords is None
+            or classification is None
+            or city is None
+            or country is None
+            or region is None
+        ):
             continue
         news_dict = {
             "title": news["title"],
@@ -51,15 +62,16 @@ def process_news():
             "country": country,
             "region": region,
             "latitude": coords[0],
-            "longitude": coords[1]
+            "longitude": coords[1],
         }
         batch = []
         batch.append(news_dict)
         if batch:
-            produce(batch,"news", elastic_topic)
+            produce(batch, "news", elastic_topic)
             batch = []
 
         a += 1
         print(a)
+
 
 process_news()

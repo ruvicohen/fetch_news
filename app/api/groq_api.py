@@ -10,7 +10,6 @@ client = Groq(
 )
 
 
-
 def classify_news_message(message):
     try:
         chat_completion = client.chat.completions.create(
@@ -27,7 +26,7 @@ def classify_news_message(message):
                     "{message}"
 
                     Provide only the category number (1, 2, or 3) as the response without text'.
-                    """
+                    """,
                 }
             ],
             model="llama3-8b-8192",
@@ -39,6 +38,7 @@ def classify_news_message(message):
     except Exception as e:
         print(f"Error during classification: {e}")
         return None
+
 
 def validate_location_details(location_details):
     required_keys = {"city", "country", "region"}
@@ -55,9 +55,10 @@ def validate_location_details(location_details):
 
     return True
 
+
 def extract_location_details(title, content):
-    clean_title = title.replace('\\', '')
-    clean_content = content.replace('\\', '') if content else ''
+    clean_title = title.replace("\\", "")
+    clean_content = content.replace("\\", "") if content else ""
     prompt = f"""
                 Extract the location details (City, Country, Region) from the following news article.
                 If no specific city, country, or region is mentioned, return None for the missing fields.
@@ -76,12 +77,7 @@ def extract_location_details(title, content):
                 """
     try:
         chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             model="llama3-8b-8192",
         )
 
