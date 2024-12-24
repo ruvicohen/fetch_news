@@ -1,77 +1,78 @@
-import json
 import os
+from dotenv import load_dotenv
 from app.api.groq_api import classify_news_message, extract_location_details
+from app.api.nwes_api import fetch_news
 from app.kafka_settings.producer import produce
 from app.service.location_service import get_coordinates
-from dotenv import load_dotenv
 
 load_dotenv(verbose=True)
 
-elastic_topic = os.environ["ELASTIC_TOPIC"]
+ELASTIC_TOPIC = os.environ["ELASTIC_TOPIC"]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-file = "../assets/news.json"
-file_path = os.path.join(BASE_DIR, file)
-classify_news_message_dict = {
+NEWS_FILE = "../assets/news.json"
+FILE_PATH = os.path.join(BASE_DIR, NEWS_FILE)
+
+CLASSIFICATION_MAP = {
     "1": "General News",
     "2": "Historical Terrorism Event",
     "3": "Current Terrorism Event",
 }
 
 
-def read_json(file_path):
-    with open(file_path) as json_file:
-        data = json.load(json_file)
-        return data
+def classify_news(body):
+    classification_type = classify_news_message(body)[0]
+    return CLASSIFICATION_MAP.get(classification_type, "General News")
 
+def extract_location(news):
+    return extract_location_details(news.get("title"), news.get("body"))
 
-def process_news():
-    results_news = read_json(file_path)
-    a = 0
-    for news in results_news["articles"]["results"]:
-        type = classify_news_message(news["body"])
-        if type[0] == "1":
-            classification = classify_news_message_dict["1"]
-        elif type[0] == "2":
-            classification = classify_news_message_dict["2"]
-        elif type[0] == "3":
-            classification = classify_news_message_dict["3"]
-        else:
-            classification = classify_news_message_dict["1"]
-        location_dict = extract_location_details(news["title"], news["body"])
-        if location_dict is None:
+def get_news_coordinates(location_dict):
+    if location_dict:
+        return get_coordinates(location_dict["country"], location_dict["city"])
+    return None
+
+def create_news_dict(news, classification, location_dict, coords):
+    return {
+        "title": news["title"],
+        "body": news["body"],
+        "date": news["dateTime"],
+        "classification": classification,
+        "city": location_dict["city"],
+        "country": location_dict["country"],
+        "region": location_dict["region"],
+        "latitude": coords[0],
+        "longitude": coords[1],
+    }
+
+def process_single_news(news):
+    classification = classify_news(news["body"])
+    location_dict = extract_location(news)
+    if not location_dict:
+        return None
+
+    coords = get_news_coordinates(location_dict)
+    if not coords:
+        return None
+
+    return create_news_dict(news, classification, location_dict, coords)
+
+def process_news_batch():
+    results_news = fetch_news()
+    processed_count = 0
+    batch = []
+
+    for news in results_news.get("articles", {}).get("results", []):
+        news_dict = process_single_news(news)
+        if not news_dict:
             continue
-        city = location_dict["city"]
-        country = location_dict["country"]
-        region = location_dict["region"]
-        coords = get_coordinates(country, city)
-        print(coords)
-        if (
-            coords is None
-            or classification is None
-            or city is None
-            or country is None
-            or region is None
-        ):
-            continue
-        news_dict = {
-            "title": news["title"],
-            "body": news["body"],
-            "date": news["dateTime"],
-            "classification": classification,
-            "city": city,
-            "country": country,
-            "region": region,
-            "latitude": coords[0],
-            "longitude": coords[1],
-        }
-        batch = []
+
         batch.append(news_dict)
-        if batch:
-            produce(batch, "news", elastic_topic)
-            batch = []
+        processed_count += 1
+        print(f"Processed {processed_count} news articles.")
 
-        a += 1
-        print(a)
+        if len(batch) >= 10:
+            produce(batch, "news", ELASTIC_TOPIC)
+            batch.clear()
 
-
-process_news()
+    if batch:
+        produce(batch, "news", ELASTIC_TOPIC)

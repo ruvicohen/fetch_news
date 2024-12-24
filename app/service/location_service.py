@@ -20,10 +20,3 @@ def get_coordinates(country, city):
     except Exception as e:
         print(f"Error getting coordinates for {country}, {city}: {e}")
         return None
-
-
-# coordinates = get_coordinates("Israel", "Tel Aviv")
-# if coordinates:
-#     print(f"Coordinates of Tel Aviv, Israel: {coordinates}")
-# else:
-#     print("Could not find coordinates.")

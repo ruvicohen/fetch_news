@@ -3,6 +3,8 @@ import os
 from groq import Groq
 from dotenv import load_dotenv
 
+from app.utils.groq_utils import validate_location_details
+
 load_dotenv(verbose=True)
 
 client = Groq(
@@ -38,22 +40,6 @@ def classify_news_message(message):
     except Exception as e:
         print(f"Error during classification: {e}")
         return None
-
-
-def validate_location_details(location_details):
-    required_keys = {"city", "country", "region"}
-    if not isinstance(location_details, dict):
-        return False
-
-    if not required_keys.issubset(location_details.keys()):
-        return False
-
-    for key in required_keys:
-        value = location_details[key]
-        if value not in ["null"] and not isinstance(value, str):
-            return False
-
-    return True
 
 
 def extract_location_details(title, content):
