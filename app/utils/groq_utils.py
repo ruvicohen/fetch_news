@@ -1,4 +1,4 @@
-def validate_location_details(location_details):
+def validate_location_details(location_details: dict) -> bool:
     required_keys = {"city", "country", "region"}
     if not isinstance(location_details, dict):
         return False
@@ -6,9 +6,8 @@ def validate_location_details(location_details):
     if not required_keys.issubset(location_details.keys()):
         return False
 
-    for key in required_keys:
-        value = location_details[key]
-        if value not in ["null"] and not isinstance(value, str):
-            return False
+    values = [location_details[key] for key in required_keys]
 
-    return True
+    not_validate_values = [value for value in values if value in ["null"] or not isinstance(value, str)]
+
+    return False if not_validate_values else True

@@ -2,7 +2,6 @@ import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
-
 from app.utils.groq_utils import validate_location_details
 
 load_dotenv(verbose=True)

@@ -58,21 +58,8 @@ def process_single_news(news):
 
 def process_news_batch():
     results_news = fetch_news()
-    processed_count = 0
-    batch = []
+    batch = [process_single_news(news) for news in results_news.get("articles", {}).get("results", [])]
+    filtered_batch = [news for news in batch if news]
 
-    for news in results_news.get("articles", {}).get("results", []):
-        news_dict = process_single_news(news)
-        if not news_dict:
-            continue
-
-        batch.append(news_dict)
-        processed_count += 1
-        print(f"Processed {processed_count} news articles.")
-
-        if len(batch) >= 10:
-            produce(batch, "news", ELASTIC_TOPIC)
-            batch.clear()
-
-    if batch:
-        produce(batch, "news", ELASTIC_TOPIC)
+    for i in range(0, len(filtered_batch), 100):
+        produce(filtered_batch[i:i+10], "news", ELASTIC_TOPIC)
